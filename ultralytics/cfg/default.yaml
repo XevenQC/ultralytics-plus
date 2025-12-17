@@ -60,7 +60,11 @@ plots: True # (bool) save plots and images during train/val
 # Predict settings -----------------------------------------------------------------------------------------------------
 source: # (str, optional) path/dir/URL/stream for images or videos; e.g. 'ultralytics/assets' or '0' for webcam
 vid_stride: 1 # (int) read every Nth frame for video sources
+reconnect: False # Reconnect RTSP stream if failed
+soft_reset: False
+reset_interval: 60
 stream_buffer: False # (bool) True buffers all frames; False keeps the most recent frame for low-latency streams
+buffer_size: 30 # streaming frame buffer size
 visualize: False # (bool) visualize model features (predict) or TP/FP/FN confusion (val)
 augment: False # (bool) apply test-time augmentation during prediction
 agnostic_nms: False # (bool) class-agnostic NMS
