@@ -90,10 +90,19 @@ class LoadStreams:
         - The class implements a buffer system to manage frame storage and retrieval.
     """
 
-    def __init__(self, sources="file.streams", vid_stride=1, buffer=False):
+    def __init__(
+            self,
+            sources="file.streams",
+            vid_stride=1,
+            buffer=False,
+            buffer_size=30,
+            reconnect=False,
+            soft_reset=False
+        ):
         """Initialize stream loader for multiple video sources, supporting various stream types."""
         torch.backends.cudnn.benchmark = True  # faster for fixed-size inference
         self.buffer = buffer  # buffer input streams
+        self.buffer_size = buffer_size
         self.running = True  # running flag for Thread
         self.mode = "stream"
         self.vid_stride = vid_stride  # video frame-rate stride
@@ -108,6 +117,8 @@ class LoadStreams:
         self.imgs = [[] for _ in range(n)]  # images
         self.shape = [[] for _ in range(n)]  # image shapes
         self.sources = [ops.clean_str(x).replace(os.sep, "_") for x in sources]  # clean source names for later
+        self.alive = [True] * n
+        self.aborted_sources = set()
         for i, s in enumerate(sources):  # index, source
             # Start thread to read frames from video stream
             st = f"{i + 1}/{n}: {s}... "
@@ -122,6 +133,13 @@ class LoadStreams:
                 )
             self.caps[i] = cv2.VideoCapture(s)  # store video capture object
             if not self.caps[i].isOpened():
+                if soft_reset:
+                    self.alive[i] = False
+                    self.aborted_sources.add(s)
+                    self.fps[i] = 30
+                    continue
+                if reconnect:
+                    self.close()
                 raise ConnectionError(f"{st}Failed to open {s}")
             w = int(self.caps[i].get(cv2.CAP_PROP_FRAME_WIDTH))
             h = int(self.caps[i].get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -133,6 +151,13 @@ class LoadStreams:
 
             success, im = self.caps[i].read()  # guarantee first frame
             if not success or im is None:
+                if soft_reset:
+                    self.alive[i] = False
+                    self.aborted_sources.add(s)
+                    continue
+
+                if reconnect:
+                    self.close()
                 raise ConnectionError(f"{st}Failed to read images from {s}")
             self.imgs[i].append(im)
             self.shape[i] = im.shape
@@ -145,7 +170,7 @@ class LoadStreams:
         """Read stream frames in daemon thread and update image buffer."""
         n, f = 0, self.frames[i]  # frame number, frame array
         while self.running and cap.isOpened() and n < (f - 1):
-            if len(self.imgs[i]) < 30:  # keep a <=30-image buffer
+            if len(self.imgs[i]) < self.buffer_size:  # keep a <= buffer_size -image buffer
                 n += 1
                 cap.grab()  # .read() = .grab() followed by .retrieve()
                 if n % self.vid_stride == 0:
@@ -165,14 +190,22 @@ class LoadStreams:
         """Terminates stream loader, stops threads, and releases video capture resources."""
         self.running = False  # stop flag for Thread
         for thread in self.threads:
-            if thread.is_alive():
-                thread.join(timeout=5)  # Add timeout
+            if thread is None:
+                continue
+            try:
+                if thread.is_alive():
+                    thread.join(timeout=5)  # Add timeout
+            except Exception as e:
+                LOGGER.warning(f"WARNING ⚠ Could not release thread object: {e}")
         for cap in self.caps:  # Iterate through the stored VideoCapture objects
+            if cap is None:
+                continue
             try:
                 cap.release()  # release video capture
             except Exception as e:
                 LOGGER.warning(f"WARNING ⚠️ Could not release VideoCapture object: {e}")
         cv2.destroyAllWindows()
+        self.imgs = [[] for _ in range(self.bs)]
 
     def __iter__(self):
         """Iterates through YOLO image feed and re-opens unresponsive streams."""
@@ -185,6 +218,10 @@ class LoadStreams:
 
         images = []
         for i, x in enumerate(self.imgs):
+            if not self.alive[i]:
+                # TODO: 默认尺寸 800 * 800
+                images.append(np.zeros((800, 800, 3), dtype=np.uint8))
+                continue
             # Wait until a frame is available in each buffer
             while not x:
                 if not self.threads[i].is_alive() or cv2.waitKey(1) == ord("q"):  # q to quit

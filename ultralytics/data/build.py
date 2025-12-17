@@ -222,7 +222,15 @@ def check_source(source):
     return source, webcam, screenshot, from_img, in_memory, tensor
 
 
-def load_inference_source(source=None, batch=1, vid_stride=1, buffer=False):
+def load_inference_source(
+        source=None,
+        batch=1,
+        vid_stride=1,
+        buffer=False,
+        buffer_size=30,
+        reconnect=False,
+        soft_reset=False
+):
     """
     Load an inference source for object detection and apply necessary transformations.
 
@@ -244,7 +252,7 @@ def load_inference_source(source=None, batch=1, vid_stride=1, buffer=False):
     elif in_memory:
         dataset = source
     elif stream:
-        dataset = LoadStreams(source, vid_stride=vid_stride, buffer=buffer)
+        dataset = LoadStreams(source, vid_stride=vid_stride, buffer=buffer, buffer_size=buffer_size, reconnect=reconnect, soft_reset=soft_reset)
     elif screenshot:
         dataset = LoadScreenshots(source)
     elif from_img:

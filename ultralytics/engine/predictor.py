@@ -138,6 +138,10 @@ class BasePredictor:
         self.transforms = None
         self.callbacks = _callbacks or callbacks.get_default_callbacks()
         self.txt_path = None
+        self.reconnect = False
+        self.soft_reset = False
+        self.reset_interval = 60
+        self.reset_time = None
         self._lock = threading.Lock()  # for automatic thread-safe inference
         callbacks.add_integration_callbacks(self)
 
@@ -257,6 +261,8 @@ class BasePredictor:
             batch=self.args.batch,
             vid_stride=self.args.vid_stride,
             buffer=self.args.stream_buffer,
+            reconnect=self.reconnect,
+            soft_reset=self.soft_reset
         )
         self.source_type = self.dataset.source_type
         if not getattr(self, "stream", True) and (
@@ -344,7 +350,7 @@ class BasePredictor:
 
                 # Print batch results
                 if self.args.verbose:
-                    LOGGER.info("\n".join(s))
+                    [LOGGER.info(ss) for ss in s]
 
                 self.run_callbacks("on_predict_batch_end")
                 yield from self.results
