@@ -138,6 +138,7 @@ class LoadStreams:
                     self.alive[i] = False
                     self.aborted_sources.add(s)
                     self.fps[i] = 30
+                    LOGGER.warning(f'Failed to open {s}, and waiting for soft reset ......')
                     continue
                 if reconnect:
                     self.close()
