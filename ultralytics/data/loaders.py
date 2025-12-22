@@ -196,7 +196,10 @@ class LoadStreams:
                     success, im = cap.retrieve()
                     if not success:
                         im = np.zeros(self.shape[i], dtype=np.uint8)
-                        LOGGER.warning(f"Video stream({stream}) unresponsive, please check your IP camera connection.")
+                        LOGGER.warning(
+                            f"Camera #{i} video stream({stream}) unresponsive, "
+                            f"please check your IP camera connection."
+                        )
                         # re-open stream if signal was lost
                         cap.release()
                         cap = cv2.VideoCapture(stream)
