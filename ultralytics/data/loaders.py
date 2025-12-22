@@ -91,7 +91,16 @@ class LoadStreams:
         - The class implements a buffer system to manage frame storage and retrieval.
     """
 
-    def __init__(self, sources: str = "file.streams", vid_stride: int = 1, buffer: bool = False, channels: int = 3, buffer_size: int = 30, reconnect: bool = False, soft_reset: bool = False):
+    def __init__(
+            self,
+            sources: str = "file.streams",
+            vid_stride: int = 1,
+            buffer: bool = False,
+            channels: int = 3,
+            buffer_size: int = 30,
+            reconnect: bool = False,
+            soft_reset: bool = False
+    ):
         """Initialize stream loader for multiple video sources, supporting various stream types.
 
         Args:
@@ -118,6 +127,7 @@ class LoadStreams:
         self.imgs = [[] for _ in range(n)]  # images
         self.shape = [[] for _ in range(n)]  # image shapes
         self.sources = [ops.clean_str(x).replace(os.sep, "_") for x in sources]  # clean source names for later
+        self.soft_reset = soft_reset
         self.alive = [True] * n
         self.aborted_sources = set()
         for i, s in enumerate(sources):  # index, source
@@ -146,9 +156,13 @@ class LoadStreams:
             w = int(self.caps[i].get(cv2.CAP_PROP_FRAME_WIDTH))
             h = int(self.caps[i].get(cv2.CAP_PROP_FRAME_HEIGHT))
             fps = self.caps[i].get(cv2.CAP_PROP_FPS)  # warning: may return 0 or nan
-            self.frames[i] = max(int(self.caps[i].get(cv2.CAP_PROP_FRAME_COUNT)), 0) or float(
-                "inf"
-            )  # infinite stream fallback
+            if self.soft_reset:
+                self.frames[i] = float("inf")
+            else:
+                self.frames[i] = max(int(self.caps[i].get(cv2.CAP_PROP_FRAME_COUNT)), 0) or float(
+                    "inf"
+                )  # infinite stream fallback
+
             self.fps[i] = max((fps if math.isfinite(fps) else 0) % 100, 0) or 30  # 30 FPS fallback
 
             success, im = self.caps[i].read()  # guarantee first frame
@@ -174,7 +188,7 @@ class LoadStreams:
     def update(self, i: int, cap: cv2.VideoCapture, stream: str):
         """Read stream frames in daemon thread and update image buffer."""
         n, f = 0, self.frames[i]  # frame number, frame array
-        while self.running and cap.isOpened() and n < (f - 1):
+        while self.running and (True if self.soft_reset else cap.isOpened()) and n < (f - 1):
             if len(self.imgs[i]) < self.buffer_size:  # keep a <= buffer_size -image buffer
                 n += 1
                 cap.grab()  # .read() = .grab() followed by .retrieve()
