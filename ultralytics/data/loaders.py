@@ -127,6 +127,7 @@ class LoadStreams:
         self.imgs = [[] for _ in range(n)]  # images
         self.shape = [[] for _ in range(n)]  # image shapes
         self.sources = [ops.clean_str(x).replace(os.sep, "_") for x in sources]  # clean source names for later
+        self.reconnect = reconnect
         self.soft_reset = soft_reset
         self.alive = [True] * n
         self.aborted_sources = set()
@@ -188,7 +189,7 @@ class LoadStreams:
     def update(self, i: int, cap: cv2.VideoCapture, stream: str):
         """Read stream frames in daemon thread and update image buffer."""
         n, f = 0, self.frames[i]  # frame number, frame array
-        while self.running and (True if self.soft_reset else cap.isOpened()) and n < (f - 1):
+        while self.running and (True if (self.soft_reset or self.reconnect) else cap.isOpened()) and n < (f - 1):
             if len(self.imgs[i]) < self.buffer_size:  # keep a <= buffer_size -image buffer
                 n += 1
                 cap.grab()  # .read() = .grab() followed by .retrieve()
