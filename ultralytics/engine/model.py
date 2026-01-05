@@ -553,6 +553,10 @@ class Model(torch.nn.Module):
             self.predictor.soft_reset = args.get('soft_reset', False)
             self.predictor.reset_time = None
             self.predictor.reset_interval = args.get('reset_interval', 60)
+        if "var_th" in args:
+            self.predictor.var_th = args.get('var_th', 10)
+        if "laplacian_th" in args:
+            self.predictor.laplacian_th = args.get('laplacian_th', 500)
         return self.predictor.predict_cli(source=source) if is_cli else self.predictor(source=source, stream=stream)
 
     def track(
