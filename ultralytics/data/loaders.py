@@ -119,6 +119,7 @@ class LoadStreams:
         self.imgs = [[] for _ in range(n)]  # images
         self.shape = [[] for _ in range(n)]  # image shapes
         self.sources = [ops.clean_str(x).replace(os.sep, "_") for x in sources]  # clean source names for later
+        self.soft_reset = soft_reset
         self.alive = [True] * n
         self.aborted_sources = set()
         for i, s in enumerate(sources):  # index, source
@@ -147,9 +148,13 @@ class LoadStreams:
             w = int(self.caps[i].get(cv2.CAP_PROP_FRAME_WIDTH))
             h = int(self.caps[i].get(cv2.CAP_PROP_FRAME_HEIGHT))
             fps = self.caps[i].get(cv2.CAP_PROP_FPS)  # warning: may return 0 or nan
-            self.frames[i] = max(int(self.caps[i].get(cv2.CAP_PROP_FRAME_COUNT)), 0) or float(
-                "inf"
-            )  # infinite stream fallback
+            if self.soft_reset:
+                self.frames[i] = float("inf")
+            else:
+                self.frames[i] = max(int(self.caps[i].get(cv2.CAP_PROP_FRAME_COUNT)), 0) or float(
+                    "inf"
+                )  # infinite stream fallback
+
             self.fps[i] = max((fps if math.isfinite(fps) else 0) % 100, 0) or 30  # 30 FPS fallback
 
             success, im = self.caps[i].read()  # guarantee first frame
@@ -186,7 +191,10 @@ class LoadStreams:
                     )
                     if not success:
                         im = np.zeros(self.shape[i], dtype=np.uint8)
-                        LOGGER.warning(f"Video stream({stream}) unresponsive, please check your IP camera connection.")
+                        LOGGER.warning(
+                            f"Camera #{i} video stream({stream}) unresponsive, "
+                            f"please check your IP camera connection."
+                        )
                         # re-open stream if signal was lost
                         cap.release()
                         cap = cv2.VideoCapture(stream)
