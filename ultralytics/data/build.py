@@ -394,10 +394,16 @@ def load_inference_source(
     vid_stride: int = 1,
     buffer: bool = False,
     channels: int = 3,
+    buffer_size: int = 30,
+    reconnect: bool = False,
+    soft_reset: bool = False
 ):
     """Load an inference source for object detection and apply necessary transformations.
 
     Args:
+        soft_reset:
+        reconnect:
+        buffer_size:
         source (str | int | Path | list | tuple | np.ndarray | PIL.Image | torch.Tensor): The input source for
             inference.
         batch (int, optional): Batch size for dataloaders.
@@ -424,7 +430,8 @@ def load_inference_source(
     elif in_memory:
         dataset = source
     elif stream:
-        dataset = LoadStreams(source, vid_stride=vid_stride, buffer=buffer, channels=channels)
+        dataset = LoadStreams(source, vid_stride=vid_stride, buffer=buffer, channels=channels,
+                              buffer_size=buffer_size, reconnect=reconnect, soft_reset=soft_reset)
     elif screenshot:
         dataset = LoadScreenshots(source, channels=channels)
     elif from_img:
