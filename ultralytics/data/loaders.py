@@ -139,7 +139,7 @@ class LoadStreams:
                     self.alive[i] = False
                     self.aborted_sources.add(s)
                     self.fps[i] = 30
-                    LOGGER.warning(f'Failed to open {s}, and waiting for soft reset ......')
+                    LOGGER.warning(f'Failed to open video stream {s}, and waiting for soft reset ......')
                     continue
                 if reconnect:
                     self.close()
@@ -158,6 +158,8 @@ class LoadStreams:
                 if soft_reset:
                     self.alive[i] = False
                     self.aborted_sources.add(s)
+                    self.fps[i] = 30
+                    LOGGER.warning(f'Failed to read images from camera #{i}({s}), and waiting for soft reset ......')
                     continue
 
                 if reconnect:
@@ -184,8 +186,10 @@ class LoadStreams:
                     )
                     if not success:
                         im = np.zeros(self.shape[i], dtype=np.uint8)
-                        LOGGER.warning("Video stream unresponsive, please check your IP camera connection.")
-                        cap.open(stream)  # re-open stream if signal was lost
+                        LOGGER.warning(f"Video stream({stream}) unresponsive, please check your IP camera connection.")
+                        # re-open stream if signal was lost
+                        cap.release()
+                        cap = cv2.VideoCapture(stream)
                     if self.buffer:
                         self.imgs[i].append(im)
                     else:
@@ -237,7 +241,7 @@ class LoadStreams:
                 time.sleep(1 / min(self.fps))
                 x = self.imgs[i]
                 if not x:
-                    LOGGER.warning(f"Waiting for stream {i}")
+                    LOGGER.warning(f"WARNING ⚠️ Waiting for camera #{i} video stream {self.sources[i]}")
 
             # Get and remove the first frame from imgs buffer
             if self.buffer:
