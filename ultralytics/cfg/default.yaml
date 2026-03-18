@@ -66,8 +66,7 @@ soft_reset: False
 reset_interval: 60
 stream_buffer: False # (bool) True buffers all frames; False keeps the most recent frame for low-latency streams
 buffer_size: 30 # streaming frame buffer size
-var_th: 10 # variant threshold for abnormal video frame
-laplacian_th: 500 # variant threshold for Laplacian change of abnormal video frame
+edge_th: 0.1 # edge detection threshold for abnormal video frame
 visualize: False # (bool) visualize model features (predict) or TP/FP/FN confusion (val)
 augment: False # (bool) apply test-time augmentation during prediction
 agnostic_nms: False # (bool) class-agnostic NMS
