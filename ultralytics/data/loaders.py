@@ -119,6 +119,7 @@ class LoadStreams:
         self.imgs = [[] for _ in range(n)]  # images
         self.shape = [[] for _ in range(n)]  # image shapes
         self.sources = [ops.clean_str(x).replace(os.sep, "_") for x in sources]  # clean source names for later
+        self.reconnect = reconnect
         self.soft_reset = soft_reset
         self.alive = [True] * n
         self.aborted_sources = set()
