@@ -142,7 +142,6 @@ class BasePredictor:
         self.soft_reset = False
         self.reset_interval = 60
         self.reset_time = None
-        self.edge_th = 0.1
         self._lock = threading.Lock()  # for automatic thread-safe inference
         callbacks.add_integration_callbacks(self)
 
