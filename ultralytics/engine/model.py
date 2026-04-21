@@ -553,8 +553,6 @@ class Model(torch.nn.Module):
             self.predictor.soft_reset = args.get('soft_reset', False)
             self.predictor.reset_time = None
             self.predictor.reset_interval = args.get('reset_interval', 60)
-        if "edge_th" in args:
-            self.predictor.edge_th = args.get('edge_th', 0.1)
         return self.predictor.predict_cli(source=source) if is_cli else self.predictor(source=source, stream=stream)
 
     def track(
